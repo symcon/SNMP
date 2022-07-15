@@ -1,0 +1,171 @@
+{
+    "elements": [
+        {
+            "type": "ExpansionPanel",
+            "caption": "Configuration",
+            "expanded": true,
+            "items": [
+                {
+                    "caption": "Host",
+                    "name": "Host",
+                    "type": "ValidationTextBox"
+                },
+                {
+                    "type": "Select",
+                    "caption": "Version",
+                    "name": "Version",
+                    "onChange": "SNMP_versionChange($id, $Version);",
+                    "options": [
+                        {
+                            "caption": "1",
+                            "value": 1
+                        },
+                        {
+                            "caption": "2",
+                            "value": 2
+                        },
+                        {
+                            "caption": "3",
+                            "value": 3
+                        }
+                    ],
+                    "value": 3
+                },
+                {
+                    "caption": "Community",
+                    "name": "Community",
+                    "type": "ValidationTextBox",
+                    "visible": false
+                },
+                {
+                    "caption": "User",
+                    "name": "User",
+                    "type": "ValidationTextBox",
+                    "visible": true
+                },
+                {
+                    "caption": "Password",
+                    "name": "Password",
+                    "type": "PasswordTextBox",
+                    "visible": true
+                },
+                {
+                    "caption": "Encryption",
+                    "name": "AuthMech",
+                    "options": [
+                        {
+                            "caption": "MD5",
+                            "value": "md5"
+                        },
+                        {
+                            "caption": "SHA1",
+                            "value": "sha1"
+                        },
+                        {
+                            "caption": "SHA224",
+                            "value": "sha224"
+                        },
+                        {
+                            "caption": "SHA256",
+                            "value": "sha256"
+                        },
+                        {
+                            "caption": "SHA384",
+                            "value": "sha384"
+                        },
+                        {
+                            "caption": "SHA512",
+                            "value": "sha512"
+                        }
+                    ],
+                    "type": "Select",
+                    "visible": true
+                },
+                {
+                    "caption": "Private",
+                    "name": "Private",
+                    "type": "CheckBox",
+                    "onChange": "if($Version == 3 && $Private){SNMP_private($id, true);}else{SNMP_private($id, false);}"
+                },
+                {
+                    "caption": "PrivatePassword",
+                    "name": "PrivatePassword",
+                    "type": "PasswordTextBox",
+                    "visible": true
+                },
+                {
+                    "caption": "Private Encription",
+                    "type": "Select",
+                    "name" : "PrivMech",
+                    "options": [
+                        {
+                            "caption": "DES",
+                            "value": "des"
+                        },
+                        {
+                            "caption": "AES128",
+                            "value": "aes128"
+                        },
+                        {
+                            "caption": "3DES",
+                            "value": "3des"
+                        },
+                        {
+                            "caption": "AES192",
+                            "value": "AES192"
+                        },
+                        {
+                            "caption": "AES256",
+                            "value": "AES256"
+                        },
+                        {
+                            "caption": "AES192blu",
+                            "value": "AES192blu"
+                        },
+                        {
+                            "caption": "AES256blu",
+                            "value": "AES256blu"
+                        }
+                    ]
+                },
+                {
+                    "caption": "MIB-Files",
+                    "name" : "MibFile",
+                    "type": "SelectFile"
+                }
+            ]
+        },
+        {
+            "caption": "The search is still active",
+            "type": "ProgressBar",
+            "name": "Bar",
+            "visible": false
+        }
+    ],
+    "actions": [
+        {
+            "caption": "OID",
+            "name": "OidList",
+            "type": "List",
+            "columns": [
+                {
+                    "caption": "OID",
+                    "name": "Oid",
+                    "width": "250px",
+                    "edit": {
+                        "type": "ValidationTextBox"
+                    }
+                },
+                {
+                    "caption": "Value",
+                    "name": "OidValue",
+                    "width": "auto",
+                    "edit": {
+                        "type": "ValidationTextBox"
+                    }
+                }
+            ],
+            "values": {}
+        }
+    ]
+}
