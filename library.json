@@ -2,7 +2,7 @@
     "id": "{ED76246A-D129-440D-E985-4CCB85C2870E}",
     "name": "SNMP",
     "author": "symcon",
-    "url": "",
+    "url": "https://github.com/symcon/SNMP",
     "compatibility": {
         "version": "6.0"
     },

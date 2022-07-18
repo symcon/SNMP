@@ -1,18 +1,18 @@
 {
     "translations": {
         "de": {
-            "Configuration" : "Konfiguration",
-            "User" : "Benutzer",
-            "Password" : "Passwort",
-            "Encryption" : "Verschlüsselung",
-            "Private" : "Privat",
-            "Private Password" : "Privates Passwort",
-            "Private Encryption" : "Private Verschlüsselung",
-            "Show only OIDs with a MIB match" : "Zeige nur OIDs an, welche im MIB hinterlegt sind",
-            "MIB-Files" : "MIB-Dateien",
-            "The search is still active" : "Die Suche ist noch aktiv",
-            "Description" : "Beschreibung",
-            "Value" : "Wert"
+            "Configuration": "Konfiguration",
+            "User": "Benutzer",
+            "Password": "Passwort",
+            "Encryption": "Verschlüsselung",
+            "Private": "Privat",
+            "Private Password": "Privates Passwort",
+            "Private Encryption": "Private Verschlüsselung",
+            "Show only OIDs with a MIB match": "Zeige nur OIDs an, welche im MIB hinterlegt sind",
+            "MIB-Files": "MIB-Dateien",
+            "The search is still active": "Die Suche ist noch aktiv",
+            "Description": "Beschreibung",
+            "Value": "Wert"
         }
     }
 }

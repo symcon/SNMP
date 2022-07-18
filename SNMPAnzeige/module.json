@@ -2,11 +2,11 @@
     "id": "{EC3FE0F1-F688-3D36-95BE-5E3A97ED65A2}",
     "name": "SNMPAnzeige",
     "type": 3,
-    "vendor": "",
+    "vendor": "Symcon",
     "aliases": [],
     "parentRequirements": [],
     "childRequirements": [],
     "implemented": [],
     "prefix": "SNMP",
-    "url": ""
+    "url": "https://github.com/symcon/SNMP/SNMPAnzeige"
 }

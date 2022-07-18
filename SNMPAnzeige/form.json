@@ -96,7 +96,7 @@
                 {
                     "caption": "Private Encription",
                     "type": "Select",
-                    "name" : "PrivMech",
+                    "name": "PrivMech",
                     "options": [
                         {
                             "caption": "DES",
@@ -130,7 +130,7 @@
                 },
                 {
                     "caption": "MIB-Files",
-                    "name" : "MibFile",
+                    "name": "MibFile",
                     "type": "SelectFile"
                 }
             ]
