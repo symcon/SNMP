@@ -245,7 +245,8 @@ class SMNPAnzeige extends IPSModule
                             'width'  => '250px',
                             'edit'   => [
                                 'type'=> 'ValidationTextBox'
-                            ]
+                            ],
+                            'editable' => false
                         ],
                         [
                             'caption' => 'Name',
@@ -253,7 +254,7 @@ class SMNPAnzeige extends IPSModule
                             'width'   => '175px',
                             'edit'    => [
                                 'type' => 'ValidationTextBox'
-                            ]
+                            ], 'editable' => false
                         ],
                         [
                             'caption' => 'Description',
@@ -261,7 +262,7 @@ class SMNPAnzeige extends IPSModule
                             'width'   => '175px',
                             'edit'    => [
                                 'type' => 'ValidationTextBox'
-                            ]
+                            ], 'editable' => false
                         ],
                         [
                             'caption'=> 'Value',
@@ -269,6 +270,14 @@ class SMNPAnzeige extends IPSModule
                             'width'  => 'auto',
                             'edit'   => [
                                 'type'=> 'ValidationTextBox'
+                            ], 'editable' => false
+                        ],
+                        [
+                            'caption' => 'Checkbox',
+                            'name'    => 'checkbox',
+                            'width'   => '100px',
+                            'edit'    => [
+                                'type' => 'CheckBox'
                             ]
                         ]
                     ],
