@@ -28,9 +28,13 @@ class SNMPAnzeige extends IPSModule
         $this->RegisterPropertyString('Mib', '');  //Mib is a shortcut of 'Managment Information Base
         $this->RegisterPropertyBoolean('ShowOidMibMatch', false);
 
+        $this->RegisterPropertyInteger('Interval', 0);
         //Buffer
         $this->SetBuffer('SearchActive', json_encode(true));
         $this->SetBuffer('Mib', json_encode(''));
+
+        //Timer for update
+        $this->RegisterTimer('UpdateValues', 0, 'SNMP_updateValues($_IPS[\'TARGET\']);');
     }
 
     public function Destroy()
@@ -47,6 +51,10 @@ class SNMPAnzeige extends IPSModule
             $this->setMib();
             $this->prepare();
         }
+
+        //Set a Timer with a new Interval
+        $sec = $this->ReadPropertyInteger('Interval') * 1000;
+        $this->SetTimerInterval('UpdateValues', $sec);
     }
 
     public function GetConfigurationForm()
@@ -216,8 +224,10 @@ class SNMPAnzeige extends IPSModule
                     ]
                 ],
                 [
-                    'type' => 'NumberSpinner',
-                    ''
+                    'type'    => 'NumberSpinner',
+                    'caption' => 'Interval',
+                    'minimum' => 0,
+                    'suffix'  => 'sec'
                 ],
                 [
                     'caption'=> 'The search is still active',
@@ -242,6 +252,7 @@ class SNMPAnzeige extends IPSModule
                     'caption'=> 'OIDs',
                     'name'   => 'OidList',
                     'type'   => 'List',
+                    'onEdit' => 'SNMP_createVariable($id, $OidList);',
                     'columns'=> [
                         [
                             'caption'=> 'OID',
@@ -316,10 +327,20 @@ class SNMPAnzeige extends IPSModule
         }
     }
 
+    public function updateValues()
+    {
+        $this->SendDebug('New', 'Values', 0);
+    }
+
     public function private(bool $bool)
     {
         $this->UpdateFormField('PrivatePassword', 'visible', $bool);
         $this->UpdateFormField('PrivMech', 'visible', $bool);
+    }
+
+    public function createVariable(object $value)
+    {
+        $this->SendDebug('Value', json_encode($value), 0);
     }
 
     public function setMib()
