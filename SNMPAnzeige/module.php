@@ -5,7 +5,7 @@ include_once __DIR__ . '/../libs/vendor/autoload.php';
 use FreeDSx\Snmp\Exception\SnmpRequestException;
 use FreeDSx\Snmp\SnmpClient;
 
-class SMNPAnzeige extends IPSModule
+class SNMPAnzeige extends IPSModule
 {
     public function Create()
     {
@@ -214,6 +214,10 @@ class SMNPAnzeige extends IPSModule
                             'values' => []
                         ],
                     ]
+                ],
+                [
+                    'type' => 'NumberSpinner',
+                    ''
                 ],
                 [
                     'caption'=> 'The search is still active',
