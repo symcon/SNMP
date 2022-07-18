@@ -28,13 +28,13 @@ class SNMPAnzeige extends IPSModule
         $this->RegisterPropertyString('Mib', '');  //Mib is a shortcut of 'Managment Information Base
         $this->RegisterPropertyBoolean('ShowOidMibMatch', false);
 
-        $this->RegisterPropertyInteger('Interval', 0);
+        $this->RegisterPropertyInteger('TimerInterval', 0);
         //Buffer
         $this->SetBuffer('SearchActive', json_encode(true));
         $this->SetBuffer('Mib', json_encode(''));
 
         //Timer for update
-        $this->RegisterTimer('UpdateValues', 0, 'SNMP_updateValues($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('UpdateValues', 0, 'SNMP_UpdateValues($_IPS[\'TARGET\']);');
     }
 
     public function Destroy()
@@ -47,14 +47,14 @@ class SNMPAnzeige extends IPSModule
     {
         //Never delete this line!
         parent::ApplyChanges();
+
         if ($this->ReadPropertyString('Host') != '') {
             $this->setMib();
             $this->prepare();
+            //Set a Timer with a new Interval
+            $sec = $this->ReadPropertyInteger('TimerInterval') * 1000;
+            $this->SetTimerInterval('UpdateValues', $sec);
         }
-
-        //Set a Timer with a new Interval
-        $sec = $this->ReadPropertyInteger('Interval') * 1000;
-        $this->SetTimerInterval('UpdateValues', $sec);
     }
 
     public function GetConfigurationForm()
@@ -81,7 +81,7 @@ class SNMPAnzeige extends IPSModule
                             'type'    => 'Select',
                             'caption' => 'Version',
                             'name'    => 'Version',
-                            'onChange'=> 'SNMP_versionChange($id, $Version);',
+                            'onChange'=> 'SNMP_VersionChange($id, $Version);',
                             'options' => [
                                 [
                                     'caption'=> '1',
@@ -152,7 +152,7 @@ class SNMPAnzeige extends IPSModule
                             'caption' => 'Private',
                             'name'    => 'Private',
                             'type'    => 'CheckBox',
-                            'onChange'=> 'if($Version == 3 && $Private){SNMP_private($id, true);}else{SNMP_private($id, false);}'
+                            'onChange'=> 'if($Version == 3 && $Private){SNMP_Private($id, true);}else{SNMP_Private($id, false);}'
                         ],
                         [
                             'caption'=> 'Private Password',
@@ -225,8 +225,8 @@ class SNMPAnzeige extends IPSModule
                 ],
                 [
                     'type'    => 'NumberSpinner',
-                    'caption' => 'Interval',
-                    'minimum' => 0,
+                    'caption' => 'TimerInterval',
+                    'name'    => 'TimerInterval',
                     'suffix'  => 'sec'
                 ],
                 [
@@ -237,22 +237,11 @@ class SNMPAnzeige extends IPSModule
                 ]
             ],
             'actions'=> [
-                /* Only for testing
-                [
-                    'type'    => 'Button',
-                    'caption' => 'Set file content',
-                    'onClick' => 'SNMP_setMib($id);'
-                ],
-                [
-                    'type'    => 'Button',
-                    'caption' => 'Prepare',
-                    'onClick' => 'SNMP_prepare($id);'
-                ],*/
                 [
                     'caption'=> 'OIDs',
                     'name'   => 'OidList',
                     'type'   => 'List',
-                    'onEdit' => 'SNMP_createVariable($id, $OidList);',
+                    'onEdit' => 'SNMP_CreateVariable($id, $OidList);',
                     'columns'=> [
                         [
                             'caption'=> 'OID',
@@ -289,7 +278,7 @@ class SNMPAnzeige extends IPSModule
                         ],
                         [
                             'caption' => 'Checkbox',
-                            'name'    => 'checkbox',
+                            'name'    => 'Checkbox',
                             'width'   => '100px',
                             'edit'    => [
                                 'type' => 'CheckBox'
@@ -302,7 +291,7 @@ class SNMPAnzeige extends IPSModule
         ]);
     }
 
-    public function versionChange(int $version)
+    public function VersionChange(int $version)
     {
         $v3 = ['User', 'Password', 'AuthMech', 'Private', 'PrivatePassword', 'PrivMech'];
         $v2 = ['Community'];
@@ -327,23 +316,45 @@ class SNMPAnzeige extends IPSModule
         }
     }
 
-    public function updateValues()
+    public function UpdateValues()
     {
-        $this->SendDebug('New', 'Values', 0);
+        $children = IPS_GetChildrenIDs($this->InstanceID);
+
+        $snmp = $this->getSNMP();
+
+        foreach ($children as $child) {
+            $objectIdent = IPS_GetObject($child)['ObjectIdent'];
+            $ident = str_replace('_', '.', $objectIdent);
+            $value = $snmp->getValue($ident);
+
+            $this->SetValue($objectIdent, $value);
+        }
     }
 
-    public function private(bool $bool)
+    public function Private(bool $bool)
     {
         $this->UpdateFormField('PrivatePassword', 'visible', $bool);
         $this->UpdateFormField('PrivMech', 'visible', $bool);
     }
 
-    public function createVariable(object $value)
+    public function CreateVariable(object $value)
     {
-        $this->SendDebug('Value', json_encode($value), 0);
+        $ident = str_replace('.', '_', $value['Oid']);
+        if ($value['Checkbox']) {
+            $name = $value['OidName'] == '' ? $ident : $value['OidName'];
+
+            if (is_numeric($value['OidValue'])) {
+                $this->RegisterVariableFloat($ident, $name);
+            } else {
+                $this->RegisterVariableString($ident, $name);
+            }
+            $this->SetValue($ident, $value['OidValue']);
+        } else {
+            $this->UnregisterVariable($ident);
+        }
     }
 
-    public function setMib()
+    public function SetMib()
     {
         $list = json_decode($this->ReadPropertyString('Mib'), true);
         if (count($list) == 0) {
@@ -355,18 +366,12 @@ class SNMPAnzeige extends IPSModule
             $content = base64_decode($item);
             $xml = simplexml_load_string($content);
             $entrys = $xml->list->entry;
-
-            //$this->SendDebug("Entrys", print_r($entrys, true), 0);
             $mib = [];
 
             foreach ($entrys as $entry) {
-                //$this->SendDebug("Entry", print_r($entry, true), 0);
                 $oid = trim(strval($entry->oid));
-                // $this->SendDebug("OID", print_r($oid, true), 0);
                 $name = trim(strval($entry->indicator));
-                //$this->SendDebug("Name", print_r($name, true), 0);
                 $description = trim(strval($entry->description));
-                //$this->SendDebug("Description", print_r($description, true), 0);
 
                 $mib[$oid] = [
                     'name'        => $name,
@@ -374,70 +379,26 @@ class SNMPAnzeige extends IPSModule
                 ];
             }
         }
-        $this->SendDebug('Array', print_r($mib, true), 0);
         $this->SetBuffer('Mib', json_encode($mib));
     }
 
-    public function prepare()
+    public function Prepare()
     {
-        $this->SendDebug('Prepare', 'Start', 0);
         $host = $this->ReadPropertyString('Host');
-        $version = $this->ReadPropertyInteger('Version');
 
         //Get the Assossisations
         $mib = json_decode($this->GetBuffer('Mib'), true);
 
         //The version is 1,2 or 3
         if ($host != '') {
-            if ($version == 3) {
-                $this->SendDebug('Version', '3', 0);
-                $password = $this->ReadPropertyString('Password');
-                $private = $this->ReadPropertyBoolean('Private');
-                if ($password == '') {
-                    $snmp = new SnmpClient([
-                        'host'    => $host,
-                        'version' => 3,
-                        'user'    => $this->ReadPropertyString('User'),
-                    ]);
-                } elseif (!$private) {
-                    $snmp = new SnmpClient([
-                        'host'      => $host,
-                        'version'   => 3,
-                        'user'      => $this->ReadPropertyString('User'),
-                        'use_auth'  => true,
-                        'auth_mech' => $this->ReadPropertyString('AuthMech'),
-                        'auth_pwd'  => $password,
-                    ]);
-                } else {
-                    $snmp = new SnmpClient([
-                        'host'      => $host,
-                        'version'   => 3,
-                        'user'      => $this->ReadPropertyString('User'),
-                        'use_auth'  => true,
-                        'auth_mech' => $this->ReadPropertyString('AuthMech'),
-                        'auth_pwd'  => $password,
-                        'use_priv'  => true,
-                        'priv_mech' => $this->ReadPropertyString('PrivMech'),
-                        'priv_pwd'  => $this->ReadPropertyString('PrivatePassword'),
-                    ]);
-                }
-            } else {
-                $this->SendDebug('Version', $version, 0);
-                $snmp = new SnmpClient([
-                    'host'      => $host,
-                    'version'   => $version,
-                    'community' => $this->ReadPropertyString('Community')
-                ]);
-            }
+            $snmp = $this->getSNMP();
 
             try {
                 $values = $this->getOID($snmp, $mib);
             } catch (SnmpRequestException $e) {
-                //$this->SendDebug("Error:", $e->getMessage(), 0);
                 echo $e->getMessage();
                 return;
             }
-            //$this->SendDebug('Assoc', print_r($assoc,true), 0);
 
             $this->UpdateFormField('OidList', 'values', json_encode($values));
             $this->UpdateFormField('Bar', 'visible', false);
@@ -455,6 +416,14 @@ class SNMPAnzeige extends IPSModule
         $this->UpdateFormField('Bar', 'maximum', 1);
         $this->UpdateFormField('Bar', 'current', 0);
 
+        //get the children Idents
+        $children = IPS_GetChildrenIDs($this->InstanceID);
+        $childrenIdents = [];
+
+        foreach ($children as $child) {
+            array_push($childrenIdents, IPS_GetObject($child)['ObjectIdent']);
+        }
+
         # Keep the walk going until there are no more OIDs left
         while ($bool && $walk->hasOids()) {
             try {
@@ -468,7 +437,12 @@ class SNMPAnzeige extends IPSModule
                     $value = 'Value can not display';
                     //$value = bin2hex(strval($oid->getValue()));
                 }
-                array_push($oids, ['Oid' => sprintf('%s', $oid->getOid()), 'OidValue' => $value]);
+
+                $ident = str_replace('.', '_', $oid->getOID());
+
+                $found = in_array($ident, $childrenIdents);
+
+                array_push($oids, ['Oid' => sprintf('%s', $oid->getOid()), 'OidValue' => $value, 'Checkbox' => $found]);
 
                 //Hard Cut at 10000 Elements, the php limit is happy
                 if (count($oids) == 10000) {
@@ -503,7 +477,6 @@ class SNMPAnzeige extends IPSModule
             }
         }
 
-        $this->SendDebug('Oid-Elements', count($oids), 0);
         $this->SetBuffer('SearchActive', json_encode(false));
         $this->UpdateFormField('Bar', 'visible', false);
 
@@ -512,5 +485,53 @@ class SNMPAnzeige extends IPSModule
         } else {
             return $oids;
         }
+    }
+
+    private function getSNMP()
+    {
+        $version = $this->ReadPropertyInteger('Version');
+        $host = $this->ReadPropertyString('Host');
+
+        if ($version == 3) {
+            $password = $this->ReadPropertyString('Password');
+            $private = $this->ReadPropertyBoolean('Private');
+            if ($password == '') {
+                $snmp = new SnmpClient([
+                    'host'    => $host,
+                    'version' => 3,
+                    'user'    => $this->ReadPropertyString('User'),
+                ]);
+            } elseif (!$private) {
+                $snmp = new SnmpClient([
+                    'host'      => $host,
+                    'version'   => 3,
+                    'user'      => $this->ReadPropertyString('User'),
+                    'use_auth'  => true,
+                    'auth_mech' => $this->ReadPropertyString('AuthMech'),
+                    'auth_pwd'  => $password,
+                ]);
+            } else {
+                $snmp = new SnmpClient([
+                    'host'      => $host,
+                    'version'   => 3,
+                    'user'      => $this->ReadPropertyString('User'),
+                    'use_auth'  => true,
+                    'auth_mech' => $this->ReadPropertyString('AuthMech'),
+                    'auth_pwd'  => $password,
+                    'use_priv'  => true,
+                    'priv_mech' => $this->ReadPropertyString('PrivMech'),
+                    'priv_pwd'  => $this->ReadPropertyString('PrivatePassword'),
+                ]);
+            }
+        } else {
+            $this->SendDebug('Version', $version, 0);
+            $snmp = new SnmpClient([
+                'host'      => $host,
+                'version'   => $version,
+                'community' => $this->ReadPropertyString('Community')
+            ]);
+        }
+
+        return $snmp;
     }
 }
