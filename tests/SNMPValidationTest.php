@@ -10,6 +10,6 @@ class SNMPValidationTest extends TestCaseSymconValidation
     }
     public function testValidateSNMPModule(): void
     {
-        $this->validateModule(__DIR__ . '/../SNMPAnzeige');
+        $this->validateModule(__DIR__ . '/../SNMP');
     }
 }
