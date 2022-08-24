@@ -7,7 +7,7 @@ use FreeDSx\Snmp\SnmpClient;
 class SNMP extends IPSModule
 {
     private $OIDCache = null;
-    
+
     public function Create()
     {
         //Never delete this line!
@@ -17,7 +17,7 @@ class SNMP extends IPSModule
         $this->RegisterPropertyString('Host', '');
         $this->RegisterPropertyInteger('Version', 3);
         $this->RegisterPropertyString('StartAt', '1.3.6.1.4');
-        
+
         //Only applicable to Version 2
         $this->RegisterPropertyString('Community', '');
 
@@ -35,14 +35,14 @@ class SNMP extends IPSModule
         // MIB = Management Information Base
         // Use this tool to convert MIB files to our supported OIDLib: https://www.paessler.com/tools/mibimporter
         $this->RegisterPropertyString('OIDLibs', '[]');
-        
+
         // Only show OIDs if we have it in our OIDLibs structure
         $this->RegisterPropertyBoolean('OnlyShowKnownOIDs', false);
-        
+
         $this->RegisterPropertyInteger('TimerInterval', 0);
-        
+
         // Buffer for internal state and caching
-        $this->SetBuffer('IsWalking', "no");
+        $this->SetBuffer('IsWalking', 'no');
         $this->SetBuffer('OIDCache', '{}');
 
         // Timer for refreshing the OID values
@@ -59,7 +59,7 @@ class SNMP extends IPSModule
     {
         //Never delete this line!
         parent::ApplyChanges();
-        
+
         // Update the timer with our new Interval
         $this->SetTimerInterval('UpdateValues', $this->ReadPropertyInteger('TimerInterval') * 1000);
     }
@@ -71,7 +71,7 @@ class SNMP extends IPSModule
         $authenticationEnabled = $this->ReadPropertyBoolean('AuthenticationEnabled');
         $privacyEnabled = $this->ReadPropertyBoolean('PrivacyEnabled');
 
-        $data = json_decode(file_get_contents(__DIR__ . "/form.json"));
+        $data = json_decode(file_get_contents(__DIR__ . '/form.json'));
         $data->elements[0]->expanded = (strlen($host) == 0);
         $data->elements[0]->items[3]->visible = ($version == 1) || ($version == 2);
         $data->elements[0]->items[4]->visible = ($version == 3);
@@ -90,14 +90,14 @@ class SNMP extends IPSModule
         $authenticationEnabled = $this->ReadPropertyBoolean('AuthenticationEnabled');
         $privacyEnabled = $this->ReadPropertyBoolean('PrivacyEnabled');
 
-        $this->UpdateFormField("Community", 'visible', ($Version == 1) || ($Version == 2));
-        $this->UpdateFormField("User", 'visible', ($Version == 3));
-        $this->UpdateFormField("AuthenticationEnabled", 'visible', ($Version == 3));
-        $this->UpdateFormField("AuthenticationPassword", 'visible', ($Version == 3) && $authenticationEnabled);
-        $this->UpdateFormField("AuthenticationMechanism", 'visible', ($Version == 3) && $authenticationEnabled);
-        $this->UpdateFormField("PrivacyEnabled", 'visible', ($Version == 3));
-        $this->UpdateFormField("PrivacyPassword", 'visible', ($Version == 3) && $privacyEnabled);
-        $this->UpdateFormField("PrivacyMechanism", 'visible', ($Version == 3) && $privacyEnabled);
+        $this->UpdateFormField('Community', 'visible', ($Version == 1) || ($Version == 2));
+        $this->UpdateFormField('User', 'visible', ($Version == 3));
+        $this->UpdateFormField('AuthenticationEnabled', 'visible', ($Version == 3));
+        $this->UpdateFormField('AuthenticationPassword', 'visible', ($Version == 3) && $authenticationEnabled);
+        $this->UpdateFormField('AuthenticationMechanism', 'visible', ($Version == 3) && $authenticationEnabled);
+        $this->UpdateFormField('PrivacyEnabled', 'visible', ($Version == 3));
+        $this->UpdateFormField('PrivacyPassword', 'visible', ($Version == 3) && $privacyEnabled);
+        $this->UpdateFormField('PrivacyMechanism', 'visible', ($Version == 3) && $privacyEnabled);
     }
 
     public function UIUpdateAuthentication(bool $AuthenticationEnabled)
@@ -111,70 +111,71 @@ class SNMP extends IPSModule
         $this->UpdateFormField('PrivacyPassword', 'visible', $PrivacyEnabled);
         $this->UpdateFormField('PrivacyMechanism', 'visible', $PrivacyEnabled);
     }
-    
+
     public function StartWalkingOIDs()
     {
         if (!$this->ReadPropertyString('Host')) {
-            echo $this->Translate("Please configure Host before starting a walk!");
+            echo $this->Translate('Please configure Host before starting a walk!');
             return;
         }
-        
+
         $this->UpdateOIDCache();
-        
+
         $snmp = $this->createSNMPClient();
         $walk = $snmp->walk('1.3.6.1.4');
 
         // At this point we have at least some sort of communication going
         // Update progressbar and buttons
-        $this->SetBuffer("IsWalking", "yes");
+        $this->SetBuffer('IsWalking', 'yes');
         $this->UpdateFormField('StartWalk', 'visible', false);
         $this->UpdateFormField('StopWalk', 'visible', true);
-        $this->UpdateFormField('Bar', 'caption', $this->Translate("Walking..."));
+        $this->UpdateFormField('Bar', 'caption', $this->Translate('Walking...'));
         $this->UpdateFormField('Bar', 'visible', true);
         $this->UpdateFormField('Bar', 'maximum', 1);
         $this->UpdateFormField('Bar', 'current', 0);
-        
+
         // Create a cache of all previously created Idents for faster "Active?" evaluation
         $childrenIdents = [];
         foreach (IPS_GetChildrenIDs($this->InstanceID) as $id) {
             $childrenIdents[] = IPS_GetObject($id)['ObjectIdent'];
         }
-        
+
         // Initialize variable for list values
         $values = [];
-        
+
         // Counter for our progressbar
         $count = 0;
 
         try {
             // Keep the walk going until there are no more OIDs left
             while ($walk->hasOids()) {
-                $this->UpdateFormField('Bar', 'caption', sprintf($this->Translate("Walking... %d"), ++$count));
-    
+                $this->UpdateFormField('Bar', 'caption', sprintf($this->Translate('Walking... %d'), ++$count));
+
                 // Abort walk if IsWalking is set to false
-                if ($this->GetBuffer("IsWalking") != "yes")
+                if ($this->GetBuffer('IsWalking') != 'yes') {
                     break;
-                
+                }
+
                 // Get the next OID in the walk
                 $oid = $walk->next();
-    
+
                 // Create Ident by replacing all dots with underscores
                 $ident = str_replace('.', '_', $oid->getOID());
-                
+
                 // Convert to HEX if it is not a valid UTF-8 value
                 $value = strval($oid->getValue());
                 if (!$this->isValidUTF8($value)) {
                     $value = bin2hex($value);
                 }
-    
+
                 $value = [
-                    'OID' => $oid->getOID(),
-                    'Name' => '',
+                    'OID'         => $oid->getOID(),
+                    'Name'        => '',
                     'Description' => '',
-                    'Value' => $value,
-                    'Active' => in_array($ident, $childrenIdents),
+                    'Value'       => $value,
+                    'Active'      => in_array($ident, $childrenIdents),
                 ];
-                
+
                 // Check if we have more details in our OID cache
                 $info = $this->getInformationFromOIDCache($oid->getOID());
                 if ($info) {
@@ -186,7 +187,7 @@ class SNMP extends IPSModule
                         continue;
                     }
                 }
-                
+
                 $values[] = $value;
             }
 
@@ -196,7 +197,7 @@ class SNMP extends IPSModule
             echo $e->getMessage();
         }
 
-        $this->SetBuffer('IsWalking', "no");
+        $this->SetBuffer('IsWalking', 'no');
         $this->UpdateFormField('Bar', 'visible', false);
         $this->UpdateFormField('StartWalk', 'visible', true);
         $this->UpdateFormField('StopWalk', 'visible', false);
@@ -204,9 +205,9 @@ class SNMP extends IPSModule
 
     public function StopWalkingOIDs()
     {
-        $this->SetBuffer("IsWalking", "no");
+        $this->SetBuffer('IsWalking', 'no');
     }
-    
+
     public function UpdateValues()
     {
         $children = IPS_GetChildrenIDs($this->InstanceID);
@@ -221,12 +222,12 @@ class SNMP extends IPSModule
             $this->SetValue($objectIdent, $value);
         }
     }
-    
+
     public function CreateVariable(object $value)
     {
         $ident = str_replace('.', '_', $value['OID']);
         if ($value['Active']) {
-            $name = $value['Name'] ? sprintf("%s (%s)", $value['Name'], $value['OID']) : $value['OID'];
+            $name = $value['Name'] ? sprintf('%s (%s)', $value['Name'], $value['OID']) : $value['OID'];
             if (is_numeric($value['Value'])) {
                 $this->RegisterVariableFloat($ident, $name);
             } else {
@@ -261,11 +262,11 @@ class SNMP extends IPSModule
             }
         }
         $this->SetBuffer('OIDCache', json_encode($OIDs, JSON_FORCE_OBJECT));
-        
+
         // Reset fast internal cache
         $this->OIDCache = null;
     }
-    
+
     private function getInformationFromOIDCache($oid)
     {
         if (!$this->OIDCache) {
@@ -279,10 +280,10 @@ class SNMP extends IPSModule
         if (isset($this->OIDCache[$key])) {
             return $this->OIDCache[$key];
         }
-        
+
         return null;
     }
-    
+
     private function isValidUTF8($string)
     {
         return preg_match('%^(?:
@@ -296,14 +297,14 @@ class SNMP extends IPSModule
             | \xF4[\x80-\x8F][\x80-\xBF]{2}      # plane 16
         )*$%xs', $string);
     }
-    
+
     private function createSNMPClient()
     {
         $configuration = [
             'host'      => $this->ReadPropertyString('Host'),
             'version'   => $this->ReadPropertyInteger('Version'),
         ];
-        switch($configuration['version']) {
+        switch ($configuration['version']) {
             case 1:
             case 2:
                 $configuration['community'] = $this->ReadPropertyString('Community');
