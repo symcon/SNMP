@@ -1,6 +1,6 @@
 {
     "id": "{EC3FE0F1-F688-3D36-95BE-5E3A97ED65A2}",
-    "name": "SNMP",
+    "name": "SNMPWalk",
     "type": 3,
     "vendor": "Symcon",
     "aliases": [],

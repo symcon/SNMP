@@ -4,7 +4,8 @@ declare(strict_types=1);
 include_once __DIR__ . '/../libs/vendor/autoload.php';
 use FreeDSx\Snmp\SnmpClient;
 
-class SNMP extends IPSModule
+// SNMP is already in use by the PHP Class: https://www.php.net/manual/en/class.snmp.php
+class SNMPWalk extends IPSModule
 {
     private $OIDCache = null;
 
