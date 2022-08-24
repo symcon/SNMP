@@ -14,22 +14,27 @@
                     "type": "Select",
                     "caption": "Version",
                     "name": "Version",
-                    "onChange": "SNMP_versionChange($id, $Version);",
+                    "onChange": "SNMP_UIUpdateVersion($id, $Version);",
                     "options": [
                         {
-                            "caption": "1",
+                            "caption": "SNMPv1",
                             "value": 1
                         },
                         {
-                            "caption": "2",
+                            "caption": "SNMPv2",
                             "value": 2
                         },
                         {
-                            "caption": "3",
+                            "caption": "SNMPv3",
                             "value": 3
                         }
                     ],
                     "value": 3
+                },
+                {
+                    "caption": "Start At",
+                    "name": "StartAt",
+                    "type": "ValidationTextBox"
                 },
                 {
                     "caption": "Community",
@@ -44,14 +49,20 @@
                     "visible": true
                 },
                 {
-                    "caption": "Password",
-                    "name": "Password",
+                    "caption": "Enable Authentication",
+                    "name": "AuthenticationEnabled",
+                    "type": "CheckBox",
+                    "onChange": "SNMP_UIUpdateAuthentication($id, $AuthenticationEnabled);"
+                },
+                {
+                    "caption": "Authentication Password",
+                    "name": "AuthenticationPassword",
                     "type": "PasswordTextBox",
                     "visible": true
                 },
                 {
-                    "caption": "Encryption",
-                    "name": "AuthMech",
+                    "caption": "Authentication Mechanism",
+                    "name": "AuthenticationMechanism",
                     "options": [
                         {
                             "caption": "MD5",
@@ -82,21 +93,22 @@
                     "visible": true
                 },
                 {
-                    "caption": "Private",
-                    "name": "Private",
+                    "caption": "Enable Privacy",
+                    "name": "PrivacyEnabled",
                     "type": "CheckBox",
-                    "onChange": "if($Version == 3 && $Private){SNMP_private($id, true);}else{SNMP_private($id, false);}"
+                    "onChange": "SNMP_UIUpdatePrivacy($id, $PrivacyEnabled);"
                 },
                 {
-                    "caption": "PrivatePassword",
-                    "name": "PrivatePassword",
+                    "caption": "Privacy Password",
+                    "name": "PrivacyPassword",
                     "type": "PasswordTextBox",
                     "visible": true
                 },
                 {
-                    "caption": "Private Encription",
+                    "caption": "Privacy Mechanism",
                     "type": "Select",
-                    "name": "PrivMech",
+                    "visible": true,
+                    "name": "PrivacyMechanism",
                     "options": [
                         {
                             "caption": "DES",
@@ -129,43 +141,122 @@
                     ]
                 },
                 {
-                    "caption": "MIB-Files",
-                    "name": "MibFile",
-                    "type": "SelectFile"
+                    "caption": "Only show known OIDs from the OIDLibs",
+                    "type": "CheckBox",
+                    "name": "OnlyShowKnownOIDs"
+                },
+                {
+                    "caption": "OIDLibs",
+                    "type": "List",
+                    "name": "OIDLibs",
+                    "delete": true,
+                    "columns": [
+                        {
+                            "caption": "Description",
+                            "name": "Description",
+                            "edit": {
+                                "type": "ValidationTextBox"
+                            },
+                            "add": "",
+                            "width": "auto"
+                        },
+                        {
+                            "caption": "File",
+                            "name": "File",
+                            "edit": {
+                                "type": "SelectFile",
+                                "extensions": "*.oidlib"
+                            },
+                            "add": "",
+                            "width": "150px"
+                        }
+                    ],
+                    "add": true,
+                    "values": []
+                },
+                {
+                    "type": "NumberSpinner",
+                    "caption": "Update Interval",
+                    "name": "TimerInterval",
+                    "suffix": "seconds"
                 }
             ]
-        },
-        {
-            "caption": "The search is still active",
-            "type": "ProgressBar",
-            "name": "Bar",
-            "visible": false
         }
     ],
     "actions": [
         {
-            "caption": "OID",
-            "name": "OidList",
+            "caption": "Start Walk",
+            "type": "Button",
+            "name": "StartWalk",
+            "visible": true,
+            "onClick": "SNMP_StartWalkingOIDs($id);"
+        },
+        {
+            "caption": "Stop Walk",
+            "type": "Button",
+            "name": "StopWalk",
+            "visible": false,
+            "onClick": "SNMP_StopWalkingOIDs($id);"
+        },
+        {
+            "caption": "",
+            "type": "ProgressBar",
+            "name": "Bar",
+            "indeterminate": true,
+            "visible": false
+        },
+        {
+            "caption": "OIDs",
+            "name": "OIDList",
             "type": "List",
+            "onEdit": "SNMP_CreateVariable($id, $OIDList);",
             "columns": [
                 {
                     "caption": "OID",
-                    "name": "Oid",
-                    "width": "250px",
-                    "edit": {
-                        "type": "ValidationTextBox"
-                    }
-                },
-                {
-                    "caption": "Value",
-                    "name": "OidValue",
+                    "name": "OID",
                     "width": "auto",
                     "edit": {
                         "type": "ValidationTextBox"
+                    },
+                    "editable": false
+                },
+                {
+                    "caption": "Name",
+                    "name": "Name",
+                    "width": "200px",
+                    "edit": {
+                        "type": "ValidationTextBox"
+                    },
+                    "editable": false
+                },
+                {
+                    "caption": "Description",
+                    "name": "Description",
+                    "width": "200px",
+                    "edit": {
+                        "type": "ValidationTextBox"
+                    },
+                    "editable": false
+                },
+                {
+                    "caption": "Value",
+                    "name": "Value",
+                    "width": "150px",
+                    "edit": {
+                        "type": "ValidationTextBox"
+                    },
+                    "editable": false
+                },
+                {
+                    "caption": "Active?",
+                    "name": "Active",
+                    "width": "100px",
+                    "edit": {
+                        "type": "CheckBox"
                     }
                 }
             ],
-            "values": {}
+            "values": []
         }
     ]
 }

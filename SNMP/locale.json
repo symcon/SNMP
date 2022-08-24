@@ -2,17 +2,30 @@
     "translations": {
         "de": {
             "Configuration": "Konfiguration",
+            "Host": "Host",
+            "Version": "Version",
+            "Start At": "Starte bei",
             "User": "Benutzer",
-            "Password": "Passwort",
-            "Encryption": "Verschlüsselung",
-            "Private": "Privat",
-            "Private Password": "Privates Passwort",
-            "Private Encryption": "Private Verschlüsselung",
-            "Show only OIDs with a MIB match": "Zeige nur OIDs an, welche im MIB hinterlegt sind",
-            "MIB-Files": "MIB-Dateien",
-            "The search is still active": "Die Suche ist noch aktiv",
+            "Enable Authentication": "Authentifizierung aktivieren",
+            "Authentication Password": "Authentifizierungspasswort",
+            "Authentication Mechanism": "Authentifizierungsart",
+            "Enable Privacy": "Verschlüsselung aktivieren",
+            "Privacy Password": "Verschlüsselungspasswort",
+            "Privacy Mechanism": "Verschlüsselungsart",
+            "Only show known OIDs from the OIDLibs": "Zeige nur bekannte OIDs aus den OIDLibs an",
+            "OIDLibs": "OIDLibs",
+            "File": "Datei",
+            "Name": "Name",
             "Description": "Beschreibung",
-            "Value": "Wert"
+            "Value": "Wert",
+            "Active?": "Aktiv?",
+            "Start Walk": "Walk starten",
+            "Stop Walk": "Walk stoppen",
+            "Update Interval": "Aktualisierungsintervall",
+            "seconds": "Sekunden",
+            "Please configure Host before starting a walk!": "Bitte Host konfigurieren bevor ein Walk gestartet wird!",
+            "Walking...": "Führe Walk durch...",
+            "Walking... %d": "Führe Walk durch... %d"
         }
     }
 }
