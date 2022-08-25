@@ -138,7 +138,7 @@ class SNMPWalk extends IPSModule
         // Create a cache of all previously created Idents for faster "Active?" evaluation
         $childrenIdents = [];
         foreach (IPS_GetChildrenIDs($this->InstanceID) as $id) {
-            $childrenIdents[] = IPS_GetObject($id)['ObjectIdent'];
+            $childrenIdents[IPS_GetObject($id)['ObjectIdent']] = IPS_GetVariable($id)['VariableAction'] > 0;
         }
 
         // Initialize variable for list values
@@ -161,7 +161,7 @@ class SNMPWalk extends IPSModule
                 $oid = $walk->next();
 
                 // Create Ident by replacing all dots with underscores
-                $ident = str_replace('.', '_', $oid->getOID());
+                $ident = $this->OIDtoIdent($oid->getOID());
 
                 // Convert to HEX if it is not a valid UTF-8 value
                 $value = strval($oid->getValue());
@@ -174,7 +174,8 @@ class SNMPWalk extends IPSModule
                     'Name'        => '',
                     'Description' => '',
                     'Value'       => $value,
-                    'Active'      => in_array($ident, $childrenIdents),
+                    'Active'      => isset($childrenIdents[$ident]),
+                    'Writable'    => isset($childrenIdents[$ident]) && $childrenIdents[$ident],
                 ];
 
                 // Check if we have more details in our OID cache
@@ -217,22 +218,30 @@ class SNMPWalk extends IPSModule
 
         foreach ($children as $child) {
             $objectIdent = IPS_GetObject($child)['ObjectIdent'];
-            $ident = str_replace('_', '.', $objectIdent);
-            $value = $snmp->getValue($ident);
-
-            $this->SetValue($objectIdent, $value);
+            try {
+                $value = $snmp->getValue($this->IdentToOID($objectIdent));
+                $this->SetValue($objectIdent, $value);
+            } catch (\Exception $e) {
+                // If we have an issue, display it here (network timeout, etc)
+                echo $e->getMessage();
+            }
         }
     }
 
     public function CreateVariable(object $value)
     {
-        $ident = str_replace('.', '_', $value['OID']);
+        $ident = $this->OIDtoIdent($value['OID']);
         if ($value['Active']) {
             $name = $value['Name'] ? sprintf('%s (%s)', $value['Name'], $value['OID']) : $value['OID'];
             if (is_numeric($value['Value'])) {
                 $this->RegisterVariableFloat($ident, $name);
             } else {
                 $this->RegisterVariableString($ident, $name);
+            }
+            if ($value['Writable']) {
+                $this->EnableAction($ident);
+            } else {
+                $this->DisableAction($ident);
             }
             $this->SetValue($ident, $value['Value']);
         } else {
@@ -268,6 +277,35 @@ class SNMPWalk extends IPSModule
         $this->OIDCache = null;
     }
 
+    public function RequestAction($Ident, $Value)
+    {
+        $oid = $this->IdentToOID($Ident);
+        $snmp = $this->createSNMPClient();
+
+        try {
+            $oidObject = $snmp->getOid($oid);
+
+            if ($oidObject->getValue() instanceof FreeDSx\Snmp\Value\StringValue) {
+                $snmp->set(\FreeDSx\Snmp\Oid::fromString($oid, $Value));
+            } elseif ($oidObject->getValue() instanceof FreeDSx\Snmp\Value\IntegerValue) {
+                $snmp->set(\FreeDSx\Snmp\Oid::fromInteger($oid, $Value));
+            } elseif ($oidObject->getValue() instanceof FreeDSx\Snmp\Value\UnsignedIntegerValue) {
+                $snmp->set(\FreeDSx\Snmp\Oid::fromUnsignedInt($oid, $Value));
+            } elseif ($oidObject->getValue() instanceof FreeDSx\Snmp\Value\CounterValue) {
+                $snmp->set(\FreeDSx\Snmp\Oid::fromCounter($oid, $Value));
+            } elseif ($oidObject->getValue() instanceof FreeDSx\Snmp\Value\BigCounterValue) {
+                $snmp->set(\FreeDSx\Snmp\Oid::fromBigCounter($oid, $Value));
+            } else {
+                throw new Exception('Unsupported Type: ' . get_class($oidObject->getValue()));
+            }
+        } catch (\Exception $e) {
+            // If we have an issue, display it here (network timeout, etc)
+            echo $e->getMessage();
+        }
+
+        $this->SetValue($Ident, $Value);
+    }
+
     private function getInformationFromOIDCache($oid)
     {
         if (!$this->OIDCache) {
@@ -283,6 +321,16 @@ class SNMPWalk extends IPSModule
         }
 
         return null;
+    }
+
+    private function OIDtoIdent($oid)
+    {
+        return str_replace('.', '_', $oid);
+    }
+
+    private function IdentToOID($ident)
+    {
+        return str_replace('_', '.', $ident);
     }
 
     private function isValidUTF8($string)

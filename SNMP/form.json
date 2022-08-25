@@ -254,6 +254,14 @@
                     "edit": {
                         "type": "CheckBox"
                     }
+                },
+                {
+                    "caption": "Writable?",
+                    "name": "Writable",
+                    "width": "100px",
+                    "edit": {
+                        "type": "CheckBox"
+                    }
                 }
             ],
             "values": []

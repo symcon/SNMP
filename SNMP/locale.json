@@ -19,6 +19,7 @@
             "Description": "Beschreibung",
             "Value": "Wert",
             "Active?": "Aktiv?",
+            "Writable?": "Schreibbar?",
             "Start Walk": "Walk starten",
             "Stop Walk": "Walk stoppen",
             "Update Interval": "Aktualisierungsintervall",
