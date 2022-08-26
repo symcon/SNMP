@@ -123,7 +123,7 @@ class SNMPWalk extends IPSModule
         $this->UpdateOIDCache();
 
         $snmp = $this->createSNMPClient();
-        $walk = $snmp->walk('1.3.6.1.4');
+        $walk = $snmp->walk($this->ReadPropertyString('StartAt'));
 
         // At this point we have at least some sort of communication going
         // Update progressbar and buttons
