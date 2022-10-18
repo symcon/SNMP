@@ -314,7 +314,12 @@ class SNMPWalk extends IPSModule
             $this->OIDCache = json_decode($this->GetBuffer('OIDCache'), true);
         }
 
-        // Cut the last number
+        // Return the cache entry
+        if (isset($this->OIDCache[$oid])) {
+            return $this->OIDCache[$oid];
+        }
+        
+        // Cut the last number (partial match is better than nothing)
         $key = substr($oid, 0, strrpos($oid, '.'));
 
         // Return the cache entry
