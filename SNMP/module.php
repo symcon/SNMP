@@ -138,7 +138,9 @@ class SNMPWalk extends IPSModule
         // Create a cache of all previously created Idents for faster "Active?" evaluation
         $childrenIdents = [];
         foreach (IPS_GetChildrenIDs($this->InstanceID) as $id) {
-            $childrenIdents[IPS_GetObject($id)['ObjectIdent']] = IPS_GetVariable($id)['VariableAction'] > 0;
+            if (IPS_VariableExists($id)) {
+                $childrenIdents[IPS_GetObject($id)['ObjectIdent']] = IPS_GetVariable($id)['VariableAction'] > 0;
+            }
         }
 
         // Initialize variable for list values
