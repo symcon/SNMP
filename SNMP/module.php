@@ -318,7 +318,7 @@ class SNMPWalk extends IPSModule
         if (isset($this->OIDCache[$oid])) {
             return $this->OIDCache[$oid];
         }
-        
+
         // Cut the last number (partial match is better than nothing)
         $key = substr($oid, 0, strrpos($oid, '.'));
 
