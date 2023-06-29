@@ -294,8 +294,8 @@ class SNMPWalk extends IPSModule
             foreach ($xml->list->entry as $entry) {
                 // Check if the buffer is under 1024 kb
                 if (strlen(json_encode($OIDs, JSON_FORCE_OBJECT)) * 8 / 1024 > 1024) {
-                    $this->UpdateFormField('Alert', "visible", true);
-                    $this->UpdateFormField('AlertLabel', "caption", $this->Translate('To many OIDs in the OIDLib'));
+                    $this->UpdateFormField('Alert', 'visible', true);
+                    $this->UpdateFormField('AlertLabel', 'caption', $this->Translate('To many OIDs in the OIDLib'));
                     $this->SetBuffer('IsWalking', 'no');
                     break;
                 }
