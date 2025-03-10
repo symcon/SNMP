@@ -28,8 +28,9 @@
             "Walking...": "Führe Walk durch...",
             "Walking... %d": "Führe Walk durch... %d",
             "Cancel": "Abbrechen",
-            "%d OIDs in the list": "%d in der Liste",
-            "To many OIDs in the OIDLib": "Zu viele OIDs in der OIDLib"
+            "%d OIDs in the list": "%d OIDs in der Liste",
+            "To many OIDs in the OIDLib": "Zu viele OIDs in der OIDLib",
+            "Found %d OIDs": "%d gefundene OIDs"
         }
     }
 }

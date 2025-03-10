@@ -221,12 +221,13 @@ class SNMPWalk extends IPSModule
 
                 $values[] = $value;
             }
+            $this->UpdateFormField('Bar', 'caption', sprintf($this->Translate('Found %d OIDs'), $count));
 
             $this->UpdateFormField('OIDList', 'values', json_encode($values));
 
             $this->UpdateFormField('Bar', 'indeterminate', false);
             $this->UpdateFormField('Bar', 'current', 1);
-            $this->UpdateFormField('Count', 'caption', sprintf($this->Translate('%d OIDs in the list.'), count($values)));
+            $this->UpdateFormField('Count', 'caption', sprintf($this->Translate('%d OIDs in the list'), count($values)));
         } catch (\Exception $e) {
             // If we have an issue, display it here (network timeout, etc)
             echo $e->getMessage();
