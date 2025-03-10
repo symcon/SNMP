@@ -30,7 +30,8 @@
             "Cancel": "Abbrechen",
             "%d OIDs in the list": "%d OIDs in der Liste",
             "To many OIDs in the OIDLib": "Zu viele OIDs in der OIDLib",
-            "Found %d OIDs": "%d gefundene OIDs"
+            "Found %d OIDs": "%d gefundene OIDs",
+            "https://www.symcon.de/en/service/documentation/module-reference/snmp/": "https://www.symcon.de/de/service/dokumentation/modulreferenz/snmp/"
         }
     }
 }
