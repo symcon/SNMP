@@ -167,7 +167,7 @@ class SNMPWalk extends IPSModule
                 case 'gb':
                     $value *= (1024 ** 3);
                     break;
-                case't':
+                case 't':
                 case 'tb':
                     $value *= (1024 ** 4);
                     break;
