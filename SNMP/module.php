@@ -132,6 +132,7 @@ class SNMPWalk extends IPSModule
         $this->UpdateFormField('Bar', 'indeterminate', true);
         $this->UpdateFormField('Bar', 'maximum', 1);
         $this->UpdateFormField('Bar', 'current', 0);
+        $this->UpdateFormField('StopWalk', 'visible', true);
 
         // Create a cache of all previously created Idents for faster "Active?" evaluation
         $childrenIdents = [];
@@ -228,6 +229,7 @@ class SNMPWalk extends IPSModule
             $this->UpdateFormField('Bar', 'indeterminate', false);
             $this->UpdateFormField('Bar', 'current', 1);
             $this->UpdateFormField('Count', 'caption', sprintf($this->Translate('%d OIDs in the list'), count($values)));
+            $this->UpdateFormField('StopWalk', 'visible', false);
         } catch (\Exception $e) {
             // If we have an issue, display it here (network timeout, etc)
             echo $e->getMessage();
