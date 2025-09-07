@@ -6,5 +6,5 @@
 
 Folgende Module beinhaltet das SNMP Repository:
 
-- __SNMP__ ([Dokumentation](https://www.symcon.de/de/service/dokumentation/modulreferenz/snmp))  
+- __SNMP__ ([Dokumentation](https://www.symcon.de/de/service/dokumentation/modulreferenz/snmp/))  
 	Zeige Werte für beliebige OIDs eines Walks an. Optional können diese als Variable erstellt und beschreiben werden.
