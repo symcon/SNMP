@@ -185,25 +185,52 @@
     ],
     "actions": [
         {
-            "caption": "Start Walk",
-            "type": "Button",
-            "name": "StartWalk",
-            "visible": true,
-            "onClick": "SNMP_StartWalkingOIDs($id);"
-        },
-        {
-            "caption": "Stop Walk",
-            "type": "Button",
-            "name": "StopWalk",
-            "visible": false,
-            "onClick": "SNMP_StopWalkingOIDs($id);"
-        },
-        {
-            "caption": "",
-            "type": "ProgressBar",
-            "name": "Bar",
-            "indeterminate": true,
-            "visible": false
+            "type": "RowLayout",
+            "items": [
+                {
+                    "caption": "Start Walk",
+                    "type": "PopupButton",
+                    "name": "StartWalk",
+                    "onClick": "SNMP_StartWalkingOIDs($id);",
+                    "popup": {
+                        "buttons": [
+                            {
+                                "caption": "Cancel",
+                                "type": "Button",
+                                "name": "StopWalk",
+                                "onClick": "SNMP_StopWalkingOIDs($id);"
+                            }
+                        ],
+                        "items": [
+                            {
+                                "caption": "",
+                                "type": "ProgressBar",
+                                "name": "Bar",
+                                "indeterminate": true
+                            }
+                        ]
+                    }
+                },
+                {
+                    "type": "PopupAlert",
+                    "name": "Alert",
+                    "visible": false,
+                    "popup": {
+                        "items": [
+                            {
+                                "type": "Label",
+                                "caption": "",
+                                "name": "AlertLabel"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "type": "Label",
+                    "name": "Count",
+                    "caption": ""
+                }
+            ]
         },
         {
             "caption": "OIDs",

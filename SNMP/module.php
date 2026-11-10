@@ -119,21 +119,25 @@ class SNMPWalk extends IPSModule
             echo $this->Translate('Please configure Host before starting a walk!');
             return;
         }
+        $this->SetBuffer('IsWalking', 'yes');
 
-        $this->UpdateOIDCache();
+        // Reset progressbar and buttons, as the popup still shows the result of the last walk
+        $this->UpdateFormField('Bar', 'caption', $this->Translate('Walking...'));
+        $this->UpdateFormField('Bar', 'indeterminate', true);
+        $this->UpdateFormField('Bar', 'maximum', 1);
+        $this->UpdateFormField('Bar', 'current', 0);
+        $this->UpdateFormField('StopWalk', 'visible', true);
+
+        if (!$this->UpdateOIDCache()) {
+            $this->UpdateFormField('Bar', 'caption', $this->Translate('Too many OIDs in the OIDLib'));
+            $this->UpdateFormField('Bar', 'indeterminate', false);
+            $this->UpdateFormField('StopWalk', 'visible', false);
+            $this->SetBuffer('IsWalking', 'no');
+            return;
+        }
 
         $snmp = $this->createSNMPClient();
         $walk = $snmp->walk($this->ReadPropertyString('StartAt'));
-
-        // At this point we have at least some sort of communication going
-        // Update progressbar and buttons
-        $this->SetBuffer('IsWalking', 'yes');
-        $this->UpdateFormField('StartWalk', 'visible', false);
-        $this->UpdateFormField('StopWalk', 'visible', true);
-        $this->UpdateFormField('Bar', 'caption', $this->Translate('Walking...'));
-        $this->UpdateFormField('Bar', 'visible', true);
-        $this->UpdateFormField('Bar', 'maximum', 1);
-        $this->UpdateFormField('Bar', 'current', 0);
 
         // Create a cache of all previously created Idents for faster "Active?" evaluation
         $childrenIdents = [];
@@ -149,36 +153,31 @@ class SNMPWalk extends IPSModule
         // Counter for our progressbar
         $count = 0;
 
+        // Stop the walk at 80 % of the memory limit, so we can still display what we found so far
+        $memoryLimit = $this->getMemoryLimit();
+        $memoryLimitReached = false;
+
+        // Encoding the list as JSON at the end needs up to twice its encoded size, so we need to keep that free
+        $listSize = 0;
+
         try {
             // Keep the walk going until there are no more OIDs left
             while ($walk->hasOids()) {
-                $this->UpdateFormField('Bar', 'caption', sprintf($this->Translate('Walking... %d'), ++$count));
-
                 // Abort walk if IsWalking is set to false
                 if ($this->GetBuffer('IsWalking') != 'yes') {
                     break;
                 }
 
-                // Get the next OID in the walk
-                $oid = $walk->next();
-
-                // Create Ident by replacing all dots with underscores
-                $ident = $this->OIDtoIdent($oid->getOID());
-
-                // Convert to HEX if it is not a valid UTF-8 value
-                $value = strval($oid->getValue());
-                if (!$this->isValidUTF8($value)) {
-                    $value = bin2hex($value);
+                if (($memoryLimit > 0) && (memory_get_usage(true) + 2 * $listSize > $memoryLimit * 0.8)) {
+                    $memoryLimitReached = true;
+                    break;
                 }
 
-                $value = [
-                    'OID'         => $oid->getOID(),
-                    'Name'        => '',
-                    'Description' => '',
-                    'Value'       => $value,
-                    'Active'      => isset($childrenIdents[$ident]),
-                    'Writable'    => isset($childrenIdents[$ident]) && $childrenIdents[$ident],
-                ];
+                // Get the next OID in the walk
+                $oid = $walk->next();
+                $this->UpdateFormField('Bar', 'caption', sprintf($this->Translate('Walking... %d'), ++$count));
+
+                $value = ['OID' => $oid->getOID()];
 
                 // Check if we have more details in our OID cache
                 $info = $this->getInformationFromOIDCache($oid->getOID());
@@ -190,21 +189,44 @@ class SNMPWalk extends IPSModule
                     if ($this->ReadPropertyBoolean('OnlyShowKnownOIDs')) {
                         continue;
                     }
+                    $value['Name'] = '';
+                    $value['Description'] = '';
+                }
+
+                // Create Ident by replacing all dots with underscores
+                $ident = $this->OIDtoIdent($oid->getOID());
+                $value['Active'] = isset($childrenIdents[$ident]);
+                $value['Writable'] = isset($childrenIdents[$ident]) && $childrenIdents[$ident];
+
+                // Convert to HEX if it is not a valid UTF-8 value
+                $value['Value'] = strval($oid->getValue());
+                if (!$this->isValidUTF8($value['Value'])) {
+                    $value['Value'] = bin2hex($value['Value']);
                 }
 
                 $values[] = $value;
+                $listSize += strlen(json_encode($value));
             }
 
             $this->UpdateFormField('OIDList', 'values', json_encode($values));
+            $this->UpdateFormField('Count', 'caption', sprintf($this->Translate('%d OIDs in the list'), count($values)));
+
+            if ($memoryLimitReached) {
+                $this->UpdateFormField('Bar', 'caption', sprintf($this->Translate('Walk stopped after %d OIDs as the memory limit is almost reached'), $count));
+            } else {
+                $this->UpdateFormField('Bar', 'caption', sprintf($this->Translate('Found %d OIDs'), $count));
+            }
+            $this->UpdateFormField('Bar', 'current', 1);
         } catch (\Exception $e) {
             // If we have an issue, display it here (network timeout, etc)
+            $this->UpdateFormField('Bar', 'caption', $e->getMessage());
             echo $e->getMessage();
         }
 
-        $this->SetBuffer('IsWalking', 'no');
-        $this->UpdateFormField('Bar', 'visible', false);
-        $this->UpdateFormField('StartWalk', 'visible', true);
+        // Stop the progressbar and hide the cancel button, regardless of how the walk ended
+        $this->UpdateFormField('Bar', 'indeterminate', false);
         $this->UpdateFormField('StopWalk', 'visible', false);
+        $this->SetBuffer('IsWalking', 'no');
     }
 
     public function StopWalkingOIDs()
@@ -255,28 +277,44 @@ class SNMPWalk extends IPSModule
     {
         $list = json_decode($this->ReadPropertyString('OIDLibs'), true);
 
+        // Clear the cache if there are no OIDLibs, so names of removed OIDLibs are not shown anymore
         if (count($list) == 0) {
-            return;
+            $this->SetBuffer('OIDCache', '{}');
+            $this->OIDCache = null;
+            return true;
         }
 
+        $startOID = $this->ReadPropertyString('StartAt');
         $OIDs = [];
         foreach ($list as $row) {
             $xml = simplexml_load_string(base64_decode($row['File']));
             foreach ($xml->list->entry as $entry) {
+                //Only add OIDs in the space of the start OID
                 $oid = trim(strval($entry->oid));
-                $name = trim(strval($entry->indicator));
-                $description = trim(strval($entry->description));
+                if (($oid == $startOID) || (strpos($oid, $startOID . '.') === 0)) {
+                    $name = trim(strval($entry->indicator));
+                    $description = trim(strval($entry->description));
 
-                $OIDs[$oid] = [
-                    'Name'        => $name,
-                    'Description' => $description
-                ];
+                    $OIDs[$oid] = [
+                        'Name'        => $name,
+                        'Description' => $description
+                    ];
+                }
             }
         }
-        $this->SetBuffer('OIDCache', json_encode($OIDs, JSON_FORCE_OBJECT));
+        // Check if the buffer is under 1 MB
+        $cache = json_encode($OIDs, JSON_FORCE_OBJECT);
+        if (strlen($cache) > 1024 * 1024) {
+            $this->UpdateFormField('AlertLabel', 'caption', $this->Translate('Too many OIDs in the OIDLib'));
+            $this->UpdateFormField('Alert', 'visible', true);
+            return false;
+        }
+        $this->SetBuffer('OIDCache', $cache);
 
         // Reset fast internal cache
         $this->OIDCache = null;
+
+        return true;
     }
 
     public function RequestAction($Ident, $Value)
@@ -328,6 +366,16 @@ class SNMPWalk extends IPSModule
         }
 
         return null;
+    }
+
+    private function getMemoryLimit()
+    {
+        // The memory_limit is either -1 (unlimited), a number of bytes or a number with a K, M or G suffix
+        $memoryLimit = trim(ini_get('memory_limit'));
+        $units = ['k' => 1024, 'm' => 1024 ** 2, 'g' => 1024 ** 3];
+        $unit = strtolower(substr($memoryLimit, -1));
+
+        return max(0, intval($memoryLimit) * ($units[$unit] ?? 1));
     }
 
     private function OIDtoIdent($oid)
